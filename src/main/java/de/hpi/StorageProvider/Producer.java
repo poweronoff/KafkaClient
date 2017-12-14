@@ -1,6 +1,7 @@
 package de.hpi.StorageProvider;
 
 
+import kafka.admin.RackAwareMode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,20 +16,21 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
+import kafka.admin.AdminUtils;
+import kafka.utils.ZKStringSerializer$;
+import kafka.utils.ZkUtils;
+import org.I0Itec.zkclient.ZkClient;
+import org.I0Itec.zkclient.ZkConnection;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 @SpringBootApplication
 public class Producer{
 
-    @Getter @Setter(AccessLevel.PRIVATE) KafkaTemplate<Integer, String> template;
-
-    // initialization
-    public Producer(){
-        setTemplate(kafkaTemplate());
-    }
-
+    @Getter @Setter(AccessLevel.PRIVATE) KafkaTemplate<String, String> template;
+/*
     @Bean
     public ProducerFactory<Integer, String> producerFactory() {
         return new DefaultKafkaProducerFactory<>(producerConfigs());
@@ -40,24 +42,56 @@ public class Producer{
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "ts1552.byod.hpi.de:9092");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        // See https://kafka.apache.org/documentation/#producerconfigs for more properties
         return props;
     }
-
+*
     @Bean
     public KafkaTemplate<Integer, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
-    }
+    } */
 
     // convenience
+
+    public void createTemplate(){
+        KafkaProducerConfig config = new KafkaProducerConfig();
+        setTemplate(config.kafkaTemplate());
+    }
+
+    public void createTopic(String topic) {
+        ZkClient zkClient = null;
+        try {
+            String zookeeperHosts = "ts1552.byod.hpi.de:2181";
+            int sessionTimeOutInMs = 15 * 1000; // 15 secs
+            int connectionTimeOutInMs = 10 * 1000; // 10 secs
+
+            zkClient = new ZkClient(zookeeperHosts, sessionTimeOutInMs, connectionTimeOutInMs, ZKStringSerializer$.MODULE$);
+            ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperHosts), false);
+
+
+            int noOfPartitions = 2;
+            int noOfReplication = 1;
+            Properties topicConfiguration = new Properties();
+
+            AdminUtils.createTopic(zkUtils, topic, noOfPartitions, noOfReplication, topicConfiguration, RackAwareMode.Enforced$.MODULE$);
+
+        }
+         catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (zkClient != null) {
+                zkClient.close();
+            }
+        }
+    }
+
     public void sendToKafka(String topic, final String data) {
         final ProducerRecord<String, String> record = createRecord(topic, data);
 
-        ListenableFuture<SendResult<Integer, String>> future = getTemplate().send(topic, data);
-        future.addCallback(new ListenableFutureCallback<SendResult<Integer, String>>() {
+        ListenableFuture<SendResult<String, String>> future = getTemplate().send(topic, data);
+        future.addCallback(new ListenableFutureCallback<SendResult<String, String>>() {
 
             @Override
-            public void onSuccess(SendResult<Integer, String> result) {
+            public void onSuccess(SendResult<String, String> result) {
                 handleSuccess(data);
             }
 
