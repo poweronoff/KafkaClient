@@ -57,22 +57,19 @@ public class Producer{
         setTemplate(config.kafkaTemplate());
     }
 
-    public void createTopic(String topic) {
+    public void createTopic(String topic, int partitions, int replication) {
         ZkClient zkClient = null;
-        try {
-            String zookeeperHosts = "ts1552.byod.hpi.de:2181";
-            int sessionTimeOutInMs = 15 * 1000; // 15 secs
-            int connectionTimeOutInMs = 10 * 1000; // 10 secs
+        String zookeeperHosts = "ts1552.byod.hpi.de:2181";
+        int sessionTimeOutInMs = 15 * 1000; // 15 secs
+        int connectionTimeOutInMs = 10 * 1000; // 10 secs
 
+        try {
             zkClient = new ZkClient(zookeeperHosts, sessionTimeOutInMs, connectionTimeOutInMs, ZKStringSerializer$.MODULE$);
             ZkUtils zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperHosts), false);
 
-
-            int noOfPartitions = 2;
-            int noOfReplication = 1;
             Properties topicConfiguration = new Properties();
 
-            AdminUtils.createTopic(zkUtils, topic, noOfPartitions, noOfReplication, topicConfiguration, RackAwareMode.Enforced$.MODULE$);
+            AdminUtils.createTopic(zkUtils, topic, partitions, replication, topicConfiguration, RackAwareMode.Enforced$.MODULE$);
 
         }
          catch (Exception ex) {

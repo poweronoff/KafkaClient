@@ -18,7 +18,7 @@ import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
 import java.util.concurrent.TimeUnit;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -39,11 +39,11 @@ class ProducerTest {
 
     @Test
     void createTopic() {
-        getProducer().createTopic("test");
+        getProducer().createTopic("test",1,1);
     }
     @Test
     void sendToKafka(){
-        //getProducer().sendToKafka("test", "data");
+        getProducer().sendToKafka("test", "data");
     }
 
     @Test
